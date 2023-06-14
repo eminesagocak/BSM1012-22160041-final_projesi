@@ -1,3 +1,6 @@
+#Emine Sağocak - 221601041
+#github hesabımın linki - https://github.com/eminesagocak/BSM1012-22160041-final_projesi.git
+
 # Giriş Sayfası
 # 1 - Sisteme Üye Ol (+)
 # 2 - Sisteme Giriş Yap (+)
@@ -18,50 +21,107 @@
 # 3 - Eşya Sil (+)
 # 4 - Koliden Çık (+)
 
+import sqlite3
+import koli_islemleri
+import koli_giris
+import siniflarim
+
+# SQL GIRIŞ
+vt=sqlite3.connect("final.db")
+imlec=vt.cursor()
+
+sorgu="CREATE TABLE if not exists 'Kullanicilar' ('Ad', 'Sifre', 'Yetki')"
+imlec=vt.cursor()
+imlec.execute(sorgu)
+
+# GLOBAL DEĞİŞKENLER
 ADMIN = 0
 KULLANICI = 1
-kullanicilar = {
-    "emine": ("1234", ADMIN),
-    "utku": ("4567", KULLANICI),
-}
 
 #Yeni üyenin kayıt bilgilerini alan fonksiyon.
-def uye_kayit(kullanicilar):
+def uye_kayit():
     isim = input("Kullanıcı Adı giriniz: ")
-    if isim in kullanicilar:
-        print("Aynı adlı kullanıcı mevcut. \n Lütfen başka bir kullanıcı adı seçiniz.")
-        return
     
-    sifre = input("Şifre: ")
-    kullanicilar[isim] = (sifre, KULLANICI)
-    
-    print("Kullanıcı Eklendi.")
+    # TODO: veritabanından isime sahip kullanıcıyı çek
+    imlec.execute("select * from Kullanicilar where Ad = '{}';".format(isim))
+    kullanici = imlec.fetchall() # [(ad, şifre, yetki), ...]
+
+    print("Debug: ", kullanici)
+
+    # TODO: eğer aynı isme sahip kullanıcı varsa hata ver ve çık.
+    if len(kullanici) > 0:
+        print("Aynı adlı kullanıcı mevcut.\nLütfen başka bir kullanıcı adı seçiniz.")
+    else:
+        # TODO: Şifreyi boş mu diye kontrol et, boşsa yeniden sor,
+        sifre = ''
+        while sifre == '':
+            sifre = input("Şifre: ")
+        
+        # TODO: (isim, şifre, yetki) ile veritabanına yaz. 
+        imlec.execute("Insert Into Kullanicilar Values (?,?,?)", (isim, sifre , KULLANICI))
+        vt.commit()
+        print("Kullanıcı Eklendi.")
 
 #Kullanıcının giriş yapmasını sağlayan fonksiyon.
-def giris_ekrani(kullanicilar):
-    isim = input("Kullanıcı adı: ") 
-    sifre = input("Kullanıcının şifresi: ")
-    if isim in kullanicilar and kullanicilar[isim][0] == sifre:
-        print("Giriş yapıldı.")
+def giris_ekrani():
+    isim = input("Kullanıcı adı: ")
+
+    # TODO: veritabanından isime sahip kullanıcıyı çek
+    imlec.execute("select * from Kullanicilar where Ad = '{}';".format(isim))
+    kullanici = imlec.fetchall() 
+
+    # TODO: eğer hiç bir kullanıcı yoksa bu isme sahip hata ver ve kapat.
+    if len(kullanici) == 0:
+        print("Kullanıcı yok.")
     else:
-        print("Kullanıcı adı veya şifre yanlış.")
+        sifre = input("Kullanıcının şifresi: ")
+
+        # TODO: kullanıcı varsa şifre aynı mı diye kontrol et, aynı değilse hata, aynıysa giriş yap.
+        if  kullanici[0][1] == sifre:
+            üye = siniflarim.Kullanici()
+            üye.ad = kullanici[0][0]
+            üye.yetki = kullanici[0][2]
+
+            print("Giriş yapıldı.")
+            koli_giris.kolilerim(üye)
+        else:
+            print("Şifre yanlış.")
 
 #Kullanıcı silmeyi sağlayan fonksiyon.
-def silinecek_kayit(kullanicilar):
+def silinecek_kayit():
     isim = input("Silinecek Kullanıcı adı: ") 
-    sifre = input("Silinecek Kullanıcının şifresi: ")
-    if isim in kullanicilar and kullanicilar[isim][0] == sifre:
-        del kullanicilar[isim]
-     
+    # TODO: veritabanın ismi çek
+    imlec.execute("select * from Kullanicilar where Ad = '{}';".format(isim))
+    kullanici = imlec.fetchall() 
+    if len(kullanici) == 0:
+        print("Kullanıcı yok.")
     else:
-        print("Kullanıcı adı veya şifre yanlış.")
+        sifre = input("Silinecek Kullanıcının şifresi: ")
+        # şifreyi kontrol et
+        if  kullanici[0][1] == sifre:
+            imlec.execute("delete from Kullanicilar where Ad = '{}';".format(isim))
+            vt.commit()
+             
+            print("Kullanıcı başarıyla silindi.")
+        else:
+            print("Şifre yanlış.")
+
+    
 
 #Kullanıcının şifre yenilemesini sağlayan fonksiyon.
-def şifre_yenileme(kullanicilar):
+def şifre_yenileme():
     isim = input("Şifresi değiştirilecek kullanıcının adı:")
-    if isim in kullanicilar:
-        sifre1 = input("Kullanıcının yeni şifresi")
-        kullanicilar[isim] = (sifre1,  kullanicilar[isim][1])
+    # TODO: veritabanından ismi çek, eğer isim doğruysa yeni şifreyi al, ve veritabanını güncelle.
+    imlec.execute("select * from Kullanicilar where Ad = '{}';".format(isim))
+    kullanici = imlec.fetchall() 
+    if len(kullanici) == 0:
+        print("Kullanıcı yok.")
+    else:
+        sifre = input("Kullanıcının yeni şifresi: ")
+        imlec.execute("update Kullanicilar set sifre = '{}' where Ad ='{}';".format(sifre,isim))
+        vt.commit()
+        print("Kullanıcı şifresi başarıyla değiştirildi.")
+
         
 
 #Kullanıcının ana sayfa ekranı.
@@ -74,19 +134,21 @@ while True:
     secim = input("Seçiminizi Giriniz(1/2/3/4/5):")
 
     if secim =="1":
-        uye_kayit(kullanicilar)
+        uye_kayit()
     elif secim =="2":
-        giris_ekrani(kullanicilar)
+        giris_ekrani()
     elif secim =="3":   
-        silinecek_kayit(kullanicilar)
+        silinecek_kayit()
     elif secim == "4":
-        şifre_yenileme(kullanicilar)
+        şifre_yenileme()
     elif secim =="5":  
         print("Uygulamadan Çıkış Yapıldı")
         break
     else:
         print("Geçersiz tuşlama yaptınız.")  
 
+vt.commit()
+vt.close()
 
 
 
